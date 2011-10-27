@@ -5,7 +5,7 @@
 //  Created by Kaufmann Toni on 24.08.11.
 //  Copyright 2011 n3xd ag.
 //
-//  Use this code to generate the same passwords in your application as «Passwort» does.
+//  Use this code to generate the same passwords in your application as “Passwort“ does.
 //
 #include <ctype.h>
 #include <stdint.h>
@@ -107,6 +107,7 @@ void encode(char *str,char* login,char* pwd,char* hint,int len,SymbolsType symbo
     }
     // the last four numbers are generated as sum of the just calculated eight numbers
     // with that approach, the master influences all digits
+    // "6480 9369 7616" -> [69], [43], [86], [09], [97], [36], [61], [96], [66], [79], [47], [05]
     for (int i = 0;i<4;i++) {
         // takes first digit and converts character into number (char-48)
         // multiplies it by 10 to make it the decimal part and adds the second digit
@@ -114,7 +115,7 @@ void encode(char *str,char* login,char* pwd,char* hint,int len,SymbolsType symbo
     }
     
     // a slight change in login, pwd or site results in a different offset into the lookup table
-    // hash("936964807616")%75 -> 59
+    // hash("648093697616")%75 -> 32
     uint32_t o = hash(seed) % 75;
     char code[kCodeLen+1];
     code[kCodeLen] = 0;
@@ -215,7 +216,7 @@ void encode(char *str,char* login,char* pwd,char* hint,int len,SymbolsType symbo
             
     }
     
-    // shuffles the three blocks individually b9pi m6pa k5m0 -> 9pib m6pa 5m0k, because h[] = { 1 0 1 }
+    // shuffles the three blocks individually w1se 59ou o8yi -> 1sew 59ou 8yio, because h[] = { 1 0 1 }
     // with that, a small change in user, pwd or site has a big impact to the code
     uint32_t h[] = { (master+site)%4, (user+site)%4, (user+master)%4 };
     char shuffled[kCodeLen+1];
@@ -226,11 +227,11 @@ void encode(char *str,char* login,char* pwd,char* hint,int len,SymbolsType symbo
         }
     }
     
-    // "9pibm6pa5m0k" -> "9pibm6pa"
+    // "w1se59ouo8yi" -> "1sew59ou8yio"
     shuffled[MIN(len,kCodeLen)] = 0;
     
     // groups password characters in a way the password gets more memorizable
-    // "9pibm6pa5m0k" -> "pibapm69"
+    // "w1se59ouo8yi" -> "w1se59ou"
     if (smartpwd) makeSmartPassword(shuffled);
     
     strcpy(str,shuffled);
