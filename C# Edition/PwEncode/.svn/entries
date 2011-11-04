@@ -1,0 +1,52 @@
+8
+
+dir
+2
+https://svn2.hosted-projects.com/chaefeli/n3xd/trunk/Encoder/PwEncode
+https://svn2.hosted-projects.com/chaefeli/n3xd
+
+
+
+2011-10-05T16:59:47.540475Z
+2
+ch
+
+
+svn:special svn:externals svn:needs-lock
+
+
+
+
+
+
+
+
+
+
+
+96dbfd91-2782-4d53-8c30-0f842447aeac
+
+PwEncoding.cs
+file
+3
+
+
+
+2011-11-04T11:53:48.187500Z
+e3702668bd11dc2280bd49b523a4962c
+2011-11-04T12:14:50.380668Z
+3
+chaefeli
+
+CodeCharacterBase.cs
+file
+3
+
+
+
+2011-11-04T11:25:00.375000Z
+cd2f4937d29a8358c15d48600cec21c7
+2011-11-04T12:14:50.380668Z
+3
+chaefeli
+

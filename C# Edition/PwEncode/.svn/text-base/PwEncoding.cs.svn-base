@@ -1,0 +1,216 @@
+﻿using System;
+using System.Text;
+
+namespace n3xd.Passwort.PwEncode {
+
+   /// <summary>
+   /// A Password-Encoding class which needs to be initalized by password-generation
+   /// options:
+   ///  - CodeCharacterBase
+   ///  - masterPassword
+   ///  - SymboslType, LetterCaseType and password-length
+   ///  - enable/disable smart-password generation (more readable ones)
+   /// 
+   /// The Encode() - method generates a password by a given login (username/email) 
+   /// and a hint (url/zip/or whatever).
+   /// </summary>
+   public class PwEncoding {
+
+      private CodeCharacterBase _codeCharacterBase;
+      private UInt32 _masterHash;
+      private CodeCharacterBase.SymbolsType _symbolType;          
+      private CodeCharacterBase.LetterCaseType _letterCaseType;   
+      private int _codeLength;                       
+      private bool _smartPasswords;
+
+      /// <summary>
+      /// The wished password-length (len) will be set to ccharBase.MaxCodeLength if its bigger.
+      /// </summary>
+      public PwEncoding(CodeCharacterBase ccharBase, string masterPwd, CodeCharacterBase.SymbolsType symbol,
+                        CodeCharacterBase.LetterCaseType letter, int len, bool smartPasswords) {
+
+         _codeCharacterBase = ccharBase;
+         _masterHash = GenerateFourDigitNumber( masterPwd );
+         _symbolType = symbol;
+         if(_symbolType == CodeCharacterBase.SymbolsType.Digits || _symbolType == CodeCharacterBase.SymbolsType.DigitsAndPunctuation) {
+            // ignore letter and set it manually
+            _letterCaseType = CodeCharacterBase.LetterCaseType.None;
+         } else {
+            _letterCaseType = letter;
+         }
+         _codeLength = Math.Min( ccharBase.MaxCodeLength, len );
+         _smartPasswords = smartPasswords;
+      }
+
+      /// <summary>
+      ///  Takes a login (username/email) and a hint (url/zip/or whatever)
+      ///  to generate a returning password.
+      ///
+      /// Example used below: login = "abcd", hint = "efgh"
+      /// called on an instance with:
+      ///   - masterPwd = "bbcd"
+      ///   - symbol    = CodeCharacterBase.SymbolsType.DigitsAndLetters 
+      ///   - letter    = CodeCharacterBase.LetterCaseType.Lower
+      ///   - len       = 8
+      ///   - smartPasswords = false
+      /// </summary>
+      public string Encode(string login, string hint) {
+         string retEncode = null;
+         
+         UInt32 userHash = GenerateFourDigitNumber( login );         
+         UInt32 siteHash = GenerateFourDigitNumber( hint );
+         
+         // constructs a seed-string by concatenating 
+         // userHash[6480] + _masterHash[9369] + siteHash[7616] -> "648093697616"
+         string seed = userHash.ToString()+ _masterHash.ToString() + siteHash.ToString();
+
+         // seedHash("936964807616")%75 -> 32
+         int seedHash = (int)(Hash( seed.ToCharArray() ) % 75);
+
+         // generates an array of 12 two digits-numbers: bulding the first 8 numbers by
+         // taking one digits out of two different hashes; the last 4 numbers are build 
+         // by the sum of the first 8 numbers modulo 100:
+         // "6480 9369 7616" -> [69], [43], [86], [09],   [97], [36], [61], [96],   [66], [79], [47], [05]
+         int[] m = new int[_codeCharacterBase.MaxCodeLength];
+         int[] adr = new int[_codeCharacterBase.MaxCodeLength];
+         for(int i = 0; i < 8; i++) {
+            m[i] = ((int)seed[i] - 48) * 10 + ((int)seed[(i + 4)] -48);
+            adr[i] = m[i] + seedHash;
+         }
+         for(int i = 0; i < 4; i++) {
+            m[i+8] = (m[i] + m[(i + 4)]) % 100;
+            adr[i+8] = m[i+8] + seedHash;
+         }
+
+         // retEncode = "w1se59ouo8yi"
+         retEncode = _codeCharacterBase.GetEncoding(adr, _symbolType, _letterCaseType );
+
+         // shuffles the characters in the retEncode, shuffledEncode={1,s,e,w,5,9,o,u,8,y,i,o}
+         int[] h = new int[] { (int)(_masterHash + siteHash) % 4, (int)(userHash + siteHash) % 4, (int)(userHash + _masterHash) % 4 };
+         char[] shuffledEncode = new char[_codeCharacterBase.MaxCodeLength];
+         for(int r = 0; r < 3; r++) {
+            for(int i = 0; i < 4; i++) {
+               shuffledEncode[r * 4 + i] = retEncode[r * 4 + (i + h[r]) % 4];
+            }
+         }
+         // reduces the retEncode to the wished codeLength
+         retEncode = new string( shuffledEncode ).Substring( 0,  _codeLength );
+
+         // reorder to make a more memorizable "smart password".
+         if(_smartPasswords) {
+            retEncode = MakeSmartPassword( retEncode );
+         }
+         return retEncode;
+      }
+
+
+      private static UInt32 GenerateFourDigitNumber(string str) {
+         UInt32 retNr = Hash( str.ToCharArray() );
+         return retNr % 9000 + 1000;
+      }
+
+      /// <summary>
+      /// hash algorithm based on Robert Sedgewick
+      /// </summary>
+      public static UInt32 Hash(char[] charArr) {         
+         if(charArr == null || charArr.Length == 0) {
+            return 546347;
+         } 
+
+         UInt32 retHashVal = 0;
+         UInt32 a = 63689;
+         UInt32 b = 378551;         
+         for(int i = 0; i < charArr.Length; i++) {
+            retHashVal = retHashVal * a + (UInt32)charArr[i];
+            a = a * b;
+         }    
+         return retHashVal;
+      }
+
+
+      #region Smart-password creation-methods
+
+      public static string MakeSmartPassword(string str) {
+         StringBuilder sb = BubbleSortString( str );
+
+         // puts one special-character ahead of the string if there is one at the end
+         if(IsSpecialChar( sb[sb.Length - 1] )) {
+            sb.Insert( 0, sb[sb.Length - 1] );
+            sb.Remove( sb.Length - 1, 1 );
+         }
+
+         // if in a sequence c1,c2,c3 c1 and c2 are both vocals or both none-vocals, 
+         // then c2 and c3 are swapped
+         for(int run = 0; run < 3; run++) {
+            for(int i = 0; i < sb.Length - 2; i++) {
+               if(char.IsLetter( sb[i + 2] )) {
+                  if(IsVocal( sb[i] ) && IsVocal( sb[i + 1] ) || 
+                              IsConsonant( sb[i] ) && IsConsonant( sb[i + 1] )) {
+                     SwapChars( sb, i + 1, i + 2 );
+                  }
+               }
+            }
+         }
+         return sb.ToString();
+      }
+
+
+      /// <summary>
+      /// Sorts a string: letters - digits - special characters.
+      /// </summary>
+      public static StringBuilder BubbleSortString(string str) {
+         StringBuilder retStr = new StringBuilder( str );
+         bool isChanged = true;
+         int last = str.Length - 2;
+
+         while(last >= 0 && isChanged) {
+            isChanged = false;
+            for(int i = 0; i <= last; i++) {
+               if(ComesAfter( retStr[i], retStr[i + 1] )) {
+                  SwapChars( retStr, i, i + 1 );
+                  isChanged = true;
+               }
+            }
+            last--;
+         }
+         return retStr;
+      }
+
+      public static bool ComesAfter(char c1, char c2) {
+         return char.IsDigit( c1 ) && char.IsLetter( c2 ) ||
+                IsSpecialChar( c1 ) && char.IsLetter( c2 ) ||
+                IsSpecialChar( c1 ) && char.IsDigit( c2 );
+      }
+
+      public static void SwapChars(StringBuilder sb, int index1, int index2){
+         if(index1 < sb.Length && index2 < sb.Length){
+            char swapChar = sb[index1];
+            sb[index1] = sb[index2];
+            sb[index2] = swapChar;
+         }
+      }
+
+      public static bool IsVocal(char c) {
+         bool retVal = false;
+         if(char.IsLetter( c )) {
+            char lc = char.ToLower( c );
+            if(lc == 'a' || lc == 'e' || lc == 'i' || lc == 'o' || lc == 'u') {
+               retVal = true;
+            }
+         }
+         return retVal;
+      }
+
+      public static bool IsConsonant(char c) {
+         return char.IsLetter( c ) && !IsVocal( c );
+      }
+
+      public static bool IsSpecialChar(char c) {
+         return c == '.' || c == '!' || c == '?' || c == '#' |
+                c == '&' || c == '@' || c == '*' || c == '+' || c == '=';
+      }
+
+      #endregion Smart-password creation-methods
+
+   }
+}
