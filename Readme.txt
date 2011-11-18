@@ -7,7 +7,7 @@ The ”Passwort“ app takes the web site name, the username and a master passwo
 ****************************************************************************************************
 Links
 ****************************************************************************************************
-Facebook product-site: www.facebook.com/passwort.enApp Store: itunes.apple.com/us/app/passwort/id474416620?ls=1&mt=8]****************************************************************************************************
+Facebook product-site English: http://www.facebook.com/passwort.enFacebook product-site German: http://www.facebook.com/passwort.deApp Store US: http://itunes.apple.com/us/app/passwort/id474416620App Store CH: http://itunes.apple.com/de/app/passwort/id474416620App Store CH: http://itunes.apple.com/ch/app/passwort/id474416620YouTube Demo Video German: http://youtu.be/r0N5kuf5Ga8****************************************************************************************************
 Native, C Edition as used in the Passwort App
 ****************************************************************************************************
 Encoder.h - header file for c version of generateor algorithm 
